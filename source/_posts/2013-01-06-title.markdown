@@ -1,0 +1,191 @@
+---
+layout: post
+title: "Various Technique of Debugging for Python"
+date: 2013-01-06 18:47
+comments: true
+categories: 
+---
+Debugging is most important aspect of the programming. When we found a bug we starting digging code with our handy tool and library. Sometime it’s look like solving math equations using [bisection method](http://en.wikipedia.org/wiki/Bisection_method). From spot fix to root fix. It become quite tedious and complex when you dealing with large framework where hundreds of class and thousands of methods are define. Lots of instance create and destroy runtime. Let’s start with python.
+
+One of my favorite lib for debuggin of python code is [inspect](http://docs.python.org/2/library/inspect.html).<br />
+Inspect.stack() give you full stack on function call. it very useful to undestand the flow of excecution.
+
+
+{% codeblock inspect stack. lang:python %}
+import inspect
+for x in inspect.stack():
+    print 'Call stack...',x
+{% endcodeblock %}
+
+Above code will print full stack frame.
+ 
+    Call stack... (<frame object at 0xb49ab74>, '/home/ravi/openerp-tools/server/trunk/openerp/osv/orm.py', 2316, 'search', ['        for x in inspect.stack():\n'], 0)
+    Call stack... (<frame object at 0xbbb54d4>, '/home/ravi/openerp-tools/server/trunk/openerp/addons/base/res/res_users.py', 322, 'name_search', ["            ids = self.search(cr, user, [('login','=',name)]+ args, limit=limit, context=context)\n"], 0)
+    Call stack... (<frame object at 0xb876bac>, '/home/ravi/openerp-tools/server/trunk/openerp/osv/osv.py', 166, 'execute_cr', ['        return getattr(object, method)(cr, uid, *args, **kw)\n'], 0)
+    Call stack... (<frame object at 0xb884964>, '/home/ravi/openerp-tools/server/trunk/openerp/osv/osv.py', 179, 'execute', ['                res = self.execute_cr(cr, uid, obj, method, *args, **kw)\n'], 0)
+    Call stack... (<frame object at 0xb99fe24>, '/home/ravi/openerp-tools/server/trunk/openerp/osv/osv.py', 123, 'wrapper', ['                return f(self, dbname, *args, **kwargs)\n'], 0)
+    Call stack... (<frame object at 0xb99fc9c>, '/home/ravi/openerp-tools/server/trunk/openerp/osv/osv.py', 169, 'execute_kw', ['        return self.execute(db, uid, obj, method, *args, **kw or {})\n'], 0)
+    Call stack... (<frame object at 0xb99fb1c>, '/home/ravi/openerp-tools/server/trunk/openerp/service/web_services.py', 614, 'dispatch', ['        res = fn(db, uid, *params)\n'], 0)
+
+### Inspect with class property:  ######
+
+Generally object has a some property(attribute) like readonly, required, title, which are change so frequently during execution and we want to know from where(exactly which file with line no) change the particular property. look at following code..
+
+{% codeblock inspect stack. lang:python %}
+class Charfield(object):
+    def __init__(self):
+        self._readonly = False
+
+    def fget(self):
+        print "Getting: %s" % self._readonly
+        return self._readonly
+    
+    def fset(self, value):
+        print "Setting: %s" % value
+        import inspect
+        for x in inspect.stack():
+            print 'trace:',x
+        self._readonly = value 
+
+    def fdel(self):
+        print "Deleting: %s" %self._readonly
+        del self._readonly
+
+    readonly = property(fget, fset, fdel, "I'm the property.")
+
+instance = Charfield()
+instance.readonly = True
+print '>>>>>>>>XX',instance.readonly
+{% endcodeblock %}
+
+Output: Here in trace you can see line no:23 change the readonly property of instance.
+
+    Setting: True
+    trace: (<frame object at 0x8a41aac>, 'property.py', 12, 'fset', ['        for x in inspect.stack():\n'], 0)
+    trace: (<frame object at 0x8a714d4>, 'property.py', 23, '<module>', ['instance.readonly = True\n'], 0)
+    >>>>>>>>XX Getting: True
+    True
+
+### Inspect with dictionary modification:  ######
+
+many time object has a dictionary as property (mostly when many common attributes of object initialize simultaneously).
+
+{% codeblock inspect stack. lang:python %}
+class DictWatch(dict):
+    def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+    
+    def __getitem__(self, key):
+        val = dict.__getitem__(self, key)
+        print 'GET', key
+        return val
+    
+    def __setitem__(self, key, val):
+        print 'SET', key, val
+        import inspect
+        for x in inspect.stack():
+            print 'trace :) :',x
+        dict.__setitem__(self, key, val)
+        
+    def get(self, *args, **kwargs):
+        val = dict.get(self, *args, **kwargs)
+        return val
+
+    def update(self, *args, **kwargs):
+        for k, v in dict(*args, **kwargs).iteritems():
+            self[k] = v
+
+class Model(object):
+    def __init__(self, name, id):
+        self.name = name
+        self.id = id
+        self.attrs = DictWatch()
+        self.state = True
+
+    def make_readonly(self):
+        self.attrs['readonly'] = True
+        
+    def make_invisible(self):
+        self.attrs['invisible'] = True
+
+    def detail(self):
+        print '>>>>>',self.attrs['readonly'] 
+        print '<<<<<',self.attrs.get('color','no attribute found');
+
+a = Model('timbuk.too', 1);
+a.make_readonly()
+a.make_invisible()
+a.detail()
+print 'print instance with attributes:',a  # <__main__.Model object at 0xb770010c> without  __repr__
+{% endcodeblock %}
+
+
+Here class `DictWatch` override method of dict. so whenever any changes happen in `self.attrs` flow pass through overridden method of `DictWatch`. you can override any method of dict inside `DictWatch` class.
+
+
+    SET readonly True
+    trace :) : (<frame object at 0x8d496f4>, 'setttrs.py', 13, '__setitem__', ['        for x in inspect.stack():\n'], 0)
+    trace :) : (<frame object at 0x8d3f83c>, 'setattrs.py', 33, 'make_readonly', ["        self.attrs['readonly'] = True\n"], 0)
+    trace :) : (<frame object at 0x8d064d4>, 'setattrs.py', 44, '<module>', ['a.make_readonly()\n'], 0)
+    SET invisible True
+    trace :) : (<frame object at 0x8d496f4>, 'setattrs.py', 13, '__setitem__', ['        for x in inspect.stack():\n'], 0)
+    trace :) : (<frame object at 0x8d70094>, 'setattrs.py', 36, 'make_invisible', ["        self.attrs['invisible'] = True\n"], 0)
+    trace :) : (<frame object at 0x8d064d4>, 'setattrs.py', 45, '<module>', ['a.make_invisible()\n'], 0)
+    >>>>> GET readonly
+    True
+    <<<<< no attribute found
+    print instance with attributes: <__main__.Model object at 0xb771e0cc> 
+
+<h3> __repr__: </h3>
+
+
+repr() method is used when an “informal” string representation of instances of that class is required. it's very useful when lot's of instance of class generated at runtime so using repr() you can print object with its attribute.
+Add following repr method in `Model` class
+
+{% codeblock __repr__. lang:python %}
+    def __repr__(self):
+        return '<%s@%s>'% (self.id, self.name)
+{% endcodeblock %}
+
+It will print instance with id and name attribute:
+    
+    print instance with attribue: <1@timbuk.too>
+
+### pdb: #######
+
+[pdb](http://docs.python.org/2/library/pdb.html) is another useful library for debugging. following code put break point during execution so you can inspect here any variable or stack frame. it will freeze the execution with live instance. [pdb](http://docs.python.org/2/library/pdb.html) has many debugger commands to execute statement step by step refer python doc for more info.
+
+{% codeblock pdb. lang:python %}
+    import pdb;
+    pdb.set_trace()
+{% endcodeblock %}
+
+with [OpenERP](https://www.openerp.com) pdb is really help when bug lie down under [ORM](http://en.wikipedia.org/wiki/Object-relational_mapping) layer. start openerp server with sql debug mode using `--log-level='debug_sql'` and put `pdb.set_trace()` in function which likely to be execute.  
+ 
+Here in following code block you can observe when `search` method call which `sql query` generated by ORM. and you can verify value of each variable for instance.
+
+    2013-01-16 18:49:13,120 5113 DEBUG jan16 openerp.sql_db: ConnectionPool(used=0/count=1/max=64) Borrow connection to 'user=ravi dbname=jan16'
+    2013-01-16 18:49:13,120 5113 DEBUG jan16 openerp.sql_db: ConnectionPool(used=1/count=1/max=64) Existing connection found at index 0
+    > /home/ravi/openerp-tools/addons/trunk/project/project.py(85)search()
+    -> if user == 1:
+    (Pdb) self
+    <openerp.osv.orm.project.project object at 0xb7ba84c>
+    (Pdb) cr
+    <openerp.sql_db.Cursor object at 0xb988bcc>
+    (Pdb) super(project, self).search(cr, user, args, offset=offset, limit=limit, order=order, context=context, count=count)
+    2013-01-16 18:46:40,557 5048 DEBUG jan16 openerp.sql_db: query: SELECT "project_project".id FROM "project_project" WHERE (("project_project"."active" = E'True')  AND  ("project_project"."state" = E'open')) ORDER BY "project_project"."sequence" ,"project_project"."id"   limit 40
+    [1, 2, 3, 4, 5]
+
+
+
+### Other: #######
+
++ [__dir__](http://docs.python.org/2/library/functions.html#dir) return list of all available attributes of object.  
++ Many python dev intentionally crash the execution(using undefined variable). I think it is quickest way to observe stack flow :)<br/>
++ Avoid using try, except statement when you are debugging code. it may missguid, simply system generated log is great. 
+
+
+
+ 
+
+
