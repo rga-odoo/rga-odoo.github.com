@@ -85,11 +85,11 @@ pinboard_user:
 pinboard_count: 3
 
 # Delicious
-delicious_user: ravi_gadhia
+delicious_user: ravi-gadhia
 delicious_count: 3
 
 # Disqus Comments
-disqus_short_name: ravi_gadhia
+disqus_short_name: ravi-gadhia
 disqus_show_comment_count: true
 
 # Google Analytics
