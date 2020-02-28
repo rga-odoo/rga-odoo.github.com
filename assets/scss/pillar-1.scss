@@ -78,31 +78,21 @@ a.theme-btn-on-bg, .theme-btn-on-bg {
 	max-width: 1000px;
 }
 
+
 .resume-header {
-	background: $theme-color-primary;
-	color: rgba(256, 256, 256, 0.9);
-	height: 220px;
-	.picture {
-		width: 220px;
-	}
-		
-	.name {
-		font-size: 2.25rem;
-		letter-spacing: 0.175rem;	
-		font-weight: 900;
-	}
-	.title {
-		font-size: 1.5rem;
-	}
-	
-	a {
-		color: rgba(256, 256, 256, 0.6);
-		&:hover {
-			color: white;
+	border-bottom: 5px solid;
+	color: #333;
+	.primary-info {
+		font-family: Georgia, 'Times New Roman', Times, serif;
+		.name {
+			font-size: 48px;
+			text-transform: uppercase;
+			letter-spacing: 3px;
 		}
-		
+		.title {
+			font-size: 1.5rem;
+		}
 	}
-	
 	
 }
 .resume-social {
@@ -261,4 +251,13 @@ a.theme-btn-on-bg, .theme-btn-on-bg {
 	}
 
 	
+}
+.page-shadow {
+	box-shadow: 0 1rem 3rem rgba(0,0,0,0.175) !important;
+}
+
+@media print{
+	.page-shadow {
+		box-shadow: none !important;
+	}
 }
