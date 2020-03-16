@@ -255,9 +255,17 @@ a.theme-btn-on-bg, .theme-btn-on-bg {
 .page-shadow {
 	box-shadow: 0 1rem 3rem rgba(0,0,0,0.175) !important;
 }
-
+a:link{
+	text-decoration: none!important;
+}
+body {
+	-webkit-print-color-adjust: exact !important;
+}
 @media print{
 	.page-shadow {
 		box-shadow: none !important;
+	}
+	a:hover {
+		text-decoration:  none;
 	}
 }

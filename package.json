@@ -1,0 +1,23 @@
+{
+  "name": "resume",
+  "version": "1.0.0",
+  "description": "Ravi Gadhia Resume",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "scss": "node-sass --watch assets/scss/ -o assets/css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rga-odoo/rga-odoo.github.com.git"
+  },
+  "keywords": [
+    "Resume"
+  ],
+  "author": "Ravi Gadhia",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rga-odoo/rga-odoo.github.com/issues"
+  },
+  "homepage": "http://rga-odoo.github.io/"
+}
