@@ -6391,7 +6391,9 @@ a.theme-btn-on-bg, .theme-btn-on-bg {
     background: #8d9aad; }
 
 .resume-section-content {
-  color: #58677c; }
+  color: #58677c; 
+  word-break: break-word;
+}
 
 .resume-timeline {
   padding-left: 2rem; }
